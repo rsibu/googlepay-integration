@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Payment Integrate</title>
+</head>
+<body>
+    <div id="container"></div>
+</body>
+<script async
+  src="https://pay.google.com/gp/p/js/pay.js"
+  onload="onGooglePayLoaded()"></script>
+<script>
+    // Google payment button
+
+//Google API Version
+const baseRequest = {
+    apiVersion: 2,
+    apiVersionMinor: 0
+};
+
+//Payment Token
+const tokenizationSpecification = {
+    type: 'DIRECT',
+    parameters: {
+        'protocolVersion': "ECv2",
+        'publicKey': 'BOdoXP1aiNp.....kh3JUhiSZKHYF2Y='
+    }
+};
+
+const allowedCardAuthNetwork = ["AMEX", "DISCOVER", "INTERAC", "JCB", "MASTERCARD", "VISA"];
+
+const allowedCardAuthMethods = ["PAN_ONLY", "CRYPTOGRAM_3DS"];
+
+const baseCardPaymentMethod = {
+    type: 'CARD',
+    parameters: {
+        allowedAuthMethods: allowedCardAuthMethods,
+        allowedCardNetworks: allowedCardAuthNetwork
+    }
+};
+
+const cardPaymentMethod = Object.assign({}, baseCardPaymentMethod,
+    {tokenizationSpecification: tokenizationSpecification},
+    baseCardPaymentMethod
+);
+
+let paymentsClient = null;
+
+//const paymentClient = new google.payment.api.PaymentsClient({environment: 'TEST'});
+
+function getGoogleIsReadyToPayRequest(){
+    return Object.assign({}, baseRequest,
+        {
+            allowedPaymentMethods: [baseCardPaymentMethod]
+        }
+    );
+}
+/*const isReadyToPayRequest = Object.assign({}, baseRequest);
+isReadyToPayRequest.allowedPaymentMethods = [baseCardPaymentMethod];*/
+
+function getGooglepaymentDataRequest() {
+    const paymentDataRequest = Object.assign({}, baseRequest);
+    paymentDataRequest.allowedPaymentMethods = [cardPaymentMethod];
+    paymentDataRequest.transactionInfo = getGoogleTransactionInfo();
+    paymentDataRequest.merchantInfo = {
+        merchantName: 'Example Merchant',
+        merchantId: '12345678901234567890'
+    };
+    return paymentDataRequest;
+}
+
+function getGooglePaymentsClient() {
+    if(paymentsClient === null) {
+        paymentsClient = new google.payment.api.PaymentsClient({environment: 'TEST'});
+    }
+    return paymentsClient;
+}
+
+function onGooglePayLoaded() {
+    const paymentsClient = getGooglePaymentsClient();
+    paymentClients.isReadyToPay(getGoogleIsReadyToPayRequest())
+        .then(function(response) {
+            if(response.result) {
+                addGooglePayButton();
+            }
+        })
+        .catch(function(err) {
+            console.log(err);
+        });
+    }
+
+function addGooglePayButton() {
+    const paymentsClient = getGooglePaymentsClient();
+    const button = PaymentsClient.createButton({onClick: onGooglePaymentButtonClicked});
+    document.getElementById('container').appendChild(button);
+}
+
+function getGoogleTransactionInfo() {
+    return {
+        totalPriceStatus: 'FINAL',
+        totalPrice: '1.00',
+        currencyCode: 'USD',
+        countryCode: 'US'
+    };
+}
+
+function prefetchGooglePaymentData() {
+    const paymentDataRequest = getGooglepaymentDataRequest();
+    paymentDataRequest.transactionInfo = {
+        totalPriceStatus: 'NOT_CURRENTLY_KNOWN',
+        currencyCode: 'USD'
+    };
+    const paymentsClient = getGooglePaymentsClient();
+    paymentsClient.prefetchPaymentData(paymentDataRequest);
+}
+
+function onGooglePaymentButtonClicked() {
+    const paymentDataRequest = getGooglePaymentsClient();
+    paymentDataRequest.transactionInfo = getGoogleTransactionInfo()
+
+    const paymentsClient = getGooglePaymentsClient();
+    paymentsClient.loadPaymentData(paymentDataRequest)
+        .then(function(paymentData) {
+            processPayment(paymentData);
+        }) 
+        .catch(function(err) {
+            console.log(err);
+        }) 
+}
+
+function processPayment() {
+    console.log(paymentData);
+    paymentToken = paymentData.paymentMethodData.tokenizationData.token;
+}
+</script>
+</html>
+
+
